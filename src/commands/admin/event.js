@@ -33,7 +33,8 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      requireAdmin(interaction);
+      await requireAdmin(interaction);
+      await interaction.deferReply(); // Event processing may take a moment
 
       const characterName = interaction.options.getString('character').trim();
       const eventType = interaction.options.getString('type');
@@ -41,20 +42,16 @@ module.exports = {
 
       // Validate custom impact range
       if (eventType === 'custom' && customImpact === null) {
-        return interaction.reply({
+        return interaction.editReply({
           content: '**Error:** Custom event type requires a `custom_impact` value.',
-          ephemeral: true,
         });
       }
 
       if (customImpact !== null && (customImpact < -100 || customImpact > 200)) {
-        return interaction.reply({
+        return interaction.editReply({
           content: '**Error:** Custom impact must be between -100 and 200.',
-          ephemeral: true,
         });
       }
-
-      await interaction.deferReply(); // Event processing may take a moment
 
       const result = await applyEvent(characterName, eventType, customImpact);
 

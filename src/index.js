@@ -2,6 +2,10 @@
  * Entry point — bootstraps the Discord client, database, commands, and event handlers.
  */
 
+// Force Node.js to use reliable public DNS servers for MongoDB Atlas resolution
+const dns = require('node:dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const mongoose = require('mongoose');
 const fs = require('fs');
@@ -14,8 +18,10 @@ mongoose.set('strictQuery', true);
 // ─── Discord Client ────────────────────────────────────────────────────────────
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers, // Needed to resolve member roles
+    GatewayIntentBits.Guilds,           // Required for basic guild functionality
+    GatewayIntentBits.GuildMembers,     // IMPORTANT: Required for member.roles to populate
+    GatewayIntentBits.DirectMessages,   // For DM support
+    GatewayIntentBits.MessageContent,   // Privileged: for message content
   ],
 });
 
@@ -82,13 +88,18 @@ function startPassiveDrift() {
 
   // Run once shortly after startup, then every 24h
   setTimeout(async () => {
-    await applyPassiveDrift().catch((e) =>
-      console.error('[PassiveDrift] Error during drift tick:', e)
-    );
+    try {
+      await applyPassiveDrift();
+    } catch (e) {
+      console.error('[PassiveDrift] Error during drift tick:', e);
+    }
+
     setInterval(async () => {
-      await applyPassiveDrift().catch((e) =>
-        console.error('[PassiveDrift] Error during drift tick:', e)
-      );
+      try {
+        await applyPassiveDrift();
+      } catch (e) {
+        console.error('[PassiveDrift] Error during drift tick:', e);
+      }
     }, INTERVAL_MS);
   }, 60_000); // Wait 1 minute after startup before first tick
 
@@ -98,6 +109,7 @@ function startPassiveDrift() {
 // ─── Database Connection ───────────────────────────────────────────────────────
 async function connectDatabase() {
   try {
+    console.log('[Database] Attempting connection to:', config.db.uri.replace(/:[^:@]*@/, ':****@')); // Log with masked password
     await mongoose.connect(config.db.uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,

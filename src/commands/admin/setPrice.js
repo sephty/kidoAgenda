@@ -17,11 +17,13 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      requireAdmin(interaction);
+      await requireAdmin(interaction);
+      await interaction.deferReply();
+      
       const name = interaction.options.getString('character').trim();
       const price = validatePrice(interaction.options.getNumber('price'));
       const character = await setPrice(name, price);
-      await interaction.reply({ embeds: [characterEmbed(character)] });
+      await interaction.editReply({ embeds: [characterEmbed(character)] });
     } catch (err) {
       await replyWithError(interaction, err);
     }

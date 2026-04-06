@@ -17,16 +17,17 @@ const config = {
   },
 
   economy: {
-    startingBalance: parseFloat(process.env.STARTING_BALANCE) || 100,
+    startingBalance: parseFloat(process.env.STARTING_BALANCE) || 0,
     maxBalance: parseFloat(process.env.MAX_BALANCE) || 999999,
   },
 
   market: {
     minPrice: parseFloat(process.env.MIN_STOCK_PRICE) || 0.01,
     maxPrice: parseFloat(process.env.MAX_STOCK_PRICE) || 9999,
-    // How much each buy/sell nudges the price (as a fraction of total supply or flat)
-    buyImpactFactor: 0.001,
-    sellImpactFactor: 0.001,
+    // Increased impact factor so trades are noticeable
+    // buyImpactFactor of 0.01 = 100 shares * 0.01 = 1% price rise
+    buyImpactFactor: 0.01,
+    sellImpactFactor: 0.01,
   },
 
   cooldowns: {

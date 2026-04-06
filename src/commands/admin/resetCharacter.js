@@ -14,11 +14,13 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      requireAdmin(interaction);
+      await requireAdmin(interaction);
+      await interaction.deferReply();
+      
       const name = interaction.options.getString('name').trim();
       const character = await resetCharacter(name);
 
-      await interaction.reply({ embeds: [characterEmbed(character)] });
+      await interaction.editReply({ embeds: [characterEmbed(character)] });
     } catch (err) {
       await replyWithError(interaction, err);
     }

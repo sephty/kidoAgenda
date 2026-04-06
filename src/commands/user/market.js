@@ -18,12 +18,15 @@ module.exports = {
   async execute(interaction) {
     try {
       useCooldown('market', interaction.user.id);
+      
+      // Defer for potentially slow database query
+      await interaction.deferReply();
 
       const limit = Math.min(interaction.options.getInteger('limit') ?? 10, 25);
       const characters = await getMarket();
       const sliced = characters.slice(0, limit);
 
-      await interaction.reply({ embeds: [marketEmbed(sliced)] });
+      await interaction.editReply({ embeds: [marketEmbed(sliced)] });
     } catch (err) {
       await replyWithError(interaction, err);
     }

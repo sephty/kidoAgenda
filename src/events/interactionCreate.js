@@ -24,6 +24,14 @@ module.exports = {
       });
     }
 
+    console.log(`[InteractionCreate] Executing /${interaction.commandName}`, {
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      guildId: interaction.guild?.id,
+      guildName: interaction.guild?.name,
+      hasMember: !!interaction.member,
+    });
+
     try {
       await command.execute(interaction);
     } catch (err) {

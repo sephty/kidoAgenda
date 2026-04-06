@@ -3,7 +3,7 @@ const { getOrCreateUser, buyShares } = require('../../services/userService');
 const { getCharacter } = require('../../services/marketService');
 const { transactionEmbed } = require('../../utils/embeds');
 const { validatePositiveInt } = require('../../utils/validation');
-const { useCooldown } = require('../../utils/cooldown');
+const { checkCooldown, setCooldown } = require('../../utils/cooldown');
 const { replyWithError } = require('../../utils/errors');
 
 module.exports = {
@@ -23,7 +23,12 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      useCooldown('buy', interaction.user.id);
+      // Check cooldown BEFORE deferring (fail fast)
+      const { onCooldown, remainingSeconds } = checkCooldown('buy', interaction.user.id);
+      if (onCooldown) {
+        const { Errors } = require('../../utils/errors');
+        throw Errors.cooldown(remainingSeconds);
+      }
 
       const characterName = interaction.options.getString('character').trim();
       const amount = validatePositiveInt(interaction.options.getInteger('amount'));
@@ -31,10 +36,13 @@ module.exports = {
       // Defer since we're making multiple DB writes
       await interaction.deferReply();
 
-      const user = await getOrCreateUser(interaction.member);
+      const user = await getOrCreateUser(interaction);
       const character = await getCharacter(characterName);
 
       const { totalCost, pricePerShare } = await buyShares(user, character, amount);
+
+      // Set cooldown AFTER successful transaction
+      setCooldown('buy', interaction.user.id);
 
       await interaction.editReply({
         embeds: [

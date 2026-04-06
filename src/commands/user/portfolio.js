@@ -13,12 +13,11 @@ module.exports = {
     try {
       useCooldown('portfolio', interaction.user.id);
 
-      const user = await getOrCreateUser(interaction.member);
+      const user = await getOrCreateUser(interaction);
       const { positions } = await getEnrichedPortfolio(user);
 
       await interaction.reply({
         embeds: [portfolioEmbed(user, positions)],
-        ephemeral: true, // Portfolio is private by default
       });
     } catch (err) {
       await replyWithError(interaction, err);

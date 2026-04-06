@@ -17,8 +17,8 @@ module.exports = {
     .addStringOption((o) =>
       o.setName('description').setDescription('Short RP description').setRequired(false)
     )
-    .addStringOption((o) =>
-      o.setName('picture').setDescription('Profile picture URL').setRequired(false)
+    .addAttachmentOption((o) =>
+      o.setName('picture').setDescription('Profile picture (upload image file)').setRequired(false)
     )
     .addNumberOption((o) =>
       o.setName('volatility')
@@ -33,20 +33,26 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      requireAdmin(interaction);
+      await requireAdmin(interaction);
+      
+      // Defer since we're making a database write
+      await interaction.deferReply();
 
       const name = validateCharacterName(interaction.options.getString('name'));
       const price = validatePrice(interaction.options.getNumber('price'));
       const description = interaction.options.getString('description') ?? '';
-      const pictureRaw = interaction.options.getString('picture');
-      const profilePicture = validateUrl(pictureRaw);
+      
+      // Get profile picture from attachment
+      const attachment = interaction.options.getAttachment('picture');
+      const profilePicture = attachment?.url || null;
+      
       const volatility = interaction.options.getNumber('volatility')
         ? validateVolatility(interaction.options.getNumber('volatility'))
         : 1.0;
       const totalSupply = interaction.options.getInteger('supply') ?? 1000;
 
       if (totalSupply < 1 || totalSupply > 1_000_000) {
-        return interaction.reply({ content: '**Error:** Supply must be between 1 and 1,000,000.', ephemeral: true });
+        return await interaction.editReply({ content: '**Error:** Supply must be between 1 and 1,000,000.' });
       }
 
       const character = await createCharacter({
@@ -58,7 +64,7 @@ module.exports = {
         totalSupply,
       });
 
-      await interaction.reply({ embeds: [characterEmbed(character)] });
+      await interaction.editReply({ embeds: [characterEmbed(character)] });
     } catch (err) {
       await replyWithError(interaction, err);
     }

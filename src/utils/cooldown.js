@@ -50,7 +50,8 @@ function setCooldown(commandName, userId) {
 
 /**
  * Convenience: check then set. Throws AppError if on cooldown.
- * Call this at the start of any rate-limited command handler.
+ * DEPRECATED: Use checkCooldown + setCooldown separately for better control.
+ * Call this only for non-critical commands without transaction logic.
  */
 function useCooldown(commandName, userId) {
   const { onCooldown, remainingSeconds } = checkCooldown(commandName, userId);

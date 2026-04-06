@@ -65,7 +65,7 @@ async function applyEvent(characterName, eventType, customImpact = null) {
     );
   }
 
-  const character = await Character.findOne({ name: characterName, isActive: true });
+  const character = await Character.findOne({ name: characterName });
   if (!character) {
     const { Errors } = require('../utils/errors');
     throw Errors.notFound(`Character "${characterName}"`);
@@ -159,38 +159,86 @@ async function applySellPressure(character, amount) {
  * Passive reputation drift: apply a tiny daily nudge to prices based on reputation.
  * Called on a schedule (e.g., every 24 hours).
  * Positive rep = slight upward drift; negative rep = slight downward drift.
+ * Processes in batches to prevent timeouts on large character sets.
  */
 async function applyPassiveDrift() {
-  const characters = await Character.find({ isActive: true });
-  const updates = [];
+  const BATCH_SIZE = 50;
+  const characters = await Character.find({});
+  let processed = 0;
 
-  for (const char of characters) {
-    if (char.reputation === 0) continue;
+  for (let i = 0; i < characters.length; i += BATCH_SIZE) {
+    const batch = characters.slice(i, i + BATCH_SIZE);
+    const updates = [];
 
-    // Max drift = ±0.5% per tick at full reputation
-    const driftPercent = (char.reputation / 100) * 0.5;
-    const newPrice = clampPrice(round2(char.price * (1 + driftPercent / 100)));
-    char.price = newPrice;
-    char.lastChange = round2(driftPercent);
-    updates.push(char.save());
+    for (const char of batch) {
+      if (char.reputation === 0) continue;
+
+      // Max drift = ±0.5% per tick at full reputation
+      const driftPercent = (char.reputation / 100) * 0.5;
+      const newPrice = clampPrice(round2(char.price * (1 + driftPercent / 100)));
+      char.price = newPrice;
+      char.lastChange = round2(driftPercent);
+      updates.push(char.save());
+      processed++;
+    }
+
+    // Use allSettled to prevent one failure from breaking the batch
+    await Promise.allSettled(updates);
   }
 
-  await Promise.all(updates);
-  console.log(`[MarketService] Passive drift applied to ${updates.length} characters.`);
+  console.log(`[MarketService] Passive drift applied to ${processed} character(s).`);
 }
 
 /**
- * Fetch all active characters sorted by price (descending).
+ * Randomly adjust volatility for all characters.
+ * Simulates real market conditions where volatility fluctuates over time.
+ * Some characters get bigger swings, others become more stable.
+ * Processes in batches to prevent timeouts.
+ */
+async function randomizeVolatility() {
+  const BATCH_SIZE = 50;
+  const characters = await Character.find({});
+  let processed = 0;
+
+  for (let i = 0; i < characters.length; i += BATCH_SIZE) {
+    const batch = characters.slice(i, i + BATCH_SIZE);
+    const updates = [];
+
+    for (const char of batch) {
+      // Generate random volatility change (±20% of current value)
+      // This means it oscillates around the base value but with variance
+      const volatilityDrift = 0.1 + Math.random() * 0.4; // Random between 0.1 and 0.5
+      const driftDirection = Math.random() < 0.5 ? -1 : 1; // Random up or down
+      
+      let newVolatility = char.volatility + (volatilityDrift * driftDirection);
+      
+      // Clamp to valid range (0.1 - 5.0)
+      newVolatility = Math.max(0.1, Math.min(5.0, newVolatility));
+      
+      char.volatility = round2(newVolatility);
+      updates.push(char.save());
+      processed++;
+    }
+
+    // Use allSettled to prevent one failure from breaking the batch
+    await Promise.allSettled(updates);
+  }
+
+  console.log(`[MarketService] Volatility randomized for ${processed} character(s).`);
+}
+
+/**
+ * Fetch all characters sorted by price (descending).
  */
 async function getMarket() {
-  return Character.find({ isActive: true }).sort({ price: -1 });
+  return Character.find({}).sort({ price: -1 });
 }
 
 /**
  * Fetch a single character by name.
  */
 async function getCharacter(name) {
-  const char = await Character.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') }, isActive: true });
+  const char = await Character.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
   if (!char) {
     const { Errors } = require('../utils/errors');
     throw Errors.notFound(`Character "${name}"`);
@@ -207,6 +255,7 @@ module.exports = {
   applyBuyPressure,
   applySellPressure,
   applyPassiveDrift,
+  randomizeVolatility,
   getMarket,
   getCharacter,
 };

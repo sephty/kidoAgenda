@@ -17,13 +17,15 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      requireAdmin(interaction);
+      await requireAdmin(interaction);
+      await interaction.deferReply();
+      
       const target = interaction.options.getUser('user');
       const amount = validatePositiveFloat(interaction.options.getNumber('amount'));
 
       const user = await addBalance(target.id, amount);
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [
           successEmbed(
             'Balance Added',

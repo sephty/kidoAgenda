@@ -68,16 +68,21 @@ async function replyWithError(interaction, error) {
     console.error('[UnhandledError]', error);
   }
 
-  const payload = { content: `**Error:** ${message}`, ephemeral: true };
+  const payload = { content: `**Error:** ${message}`, flags: 64 };
 
   try {
-    if (interaction.replied || interaction.deferred) {
+    if (interaction.deferred) {
+      // If interaction was deferred, use editReply
+      await interaction.editReply(payload);
+    } else if (interaction.replied) {
+      // If already replied, use followUp
       await interaction.followUp(payload);
     } else {
+      // Not yet replied, use reply
       await interaction.reply(payload);
     }
   } catch (replyErr) {
-    console.error('[replyWithError] Could not send error reply:', replyErr);
+    console.error('[replyWithError] Could not send error reply:', replyErr.message);
   }
 }
 

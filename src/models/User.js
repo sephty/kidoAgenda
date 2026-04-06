@@ -55,7 +55,10 @@ const userSchema = new mongoose.Schema(
     // In-game currency balance
     balance: {
       type: Number,
-      default: 100, // intentionally low economy
+      default: () => {
+        const config = require('../config');
+        return config.economy.startingBalance;
+      },
       min: 0,
     },
 
@@ -79,13 +82,35 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ discordId: 1 });
 
 /**
- * Find or create a user record for a given Discord interaction member.
+ * Find or create a user record for a given Discord interaction member or user.
  * Keeps username and avatar in sync automatically.
+ * 
+ * @param {Object} memberOrUser - Discord member or user object
+ * @param {string} discordId - The user's Discord ID (required)
  */
-userSchema.statics.findOrCreate = async function (member) {
-  const discordId = member.id;
-  const username = member.user.username;
-  const profilePicture = member.user.displayAvatarURL({ size: 256 });
+userSchema.statics.findOrCreate = async function (memberOrUser, discordId) {
+  // Validate input
+  if (!memberOrUser) {
+    throw new Error('User/member object is required');
+  }
+  if (!discordId) {
+    throw new Error('Discord ID is required');
+  }
+
+  // Extract username from either member.user or directly from user object
+  const username = memberOrUser.user?.username || memberOrUser.username;
+  if (!username) {
+    throw new Error('Username is required');
+  }
+
+  // Get avatar URL from either member.user or directly from user object
+  const avatarObj = memberOrUser.user || memberOrUser;
+  let profilePicture = null;
+  if (typeof avatarObj.displayAvatarURL === 'function') {
+    profilePicture = avatarObj.displayAvatarURL({ size: 256 });
+  } else if (avatarObj.avatar) {
+    profilePicture = `https://cdn.discordapp.com/avatars/${discordId}/${avatarObj.avatar}.png?size=256`;
+  }
 
   let user = await this.findOne({ discordId });
   if (!user) {

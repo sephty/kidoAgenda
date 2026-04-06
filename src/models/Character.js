@@ -11,7 +11,6 @@ const characterSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       minlength: 1,
       maxlength: 64,
@@ -89,20 +88,15 @@ const characterSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-
-    // Whether the character is actively tradeable
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
   },
   {
     timestamps: true, // createdAt, updatedAt
   }
 );
 
-// Index for fast lookup by name (case-insensitive search helper)
-characterSchema.index({ name: 1 });
+// Index for fast lookup by name (case-insensitive search)
+// Unique index - character names are unique across the market
+characterSchema.index({ name: 1 }, { unique: true, sparse: true });
 characterSchema.index({ price: -1 });
 
 /**

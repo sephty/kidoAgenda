@@ -13,7 +13,7 @@ module.exports = {
     try {
       useCooldown('profile', interaction.user.id);
 
-      const user = await getOrCreateUser(interaction.member);
+      const user = await getOrCreateUser(interaction);
       const { positions, totalValue } = await getEnrichedPortfolio(user);
 
       await interaction.reply({
