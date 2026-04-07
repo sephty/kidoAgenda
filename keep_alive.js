@@ -59,8 +59,8 @@ function startServer(port = 3000) {
 
   // Start server
   const server = http.createServer(app);
-  server.listen(port, () => {
-    console.log(`[WebServer] Running on http://localhost:${port}`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`[WebServer] Running on http://0.0.0.0:${port}`);
     console.log(`[WebServer] UptimeRobot can ping: /health, /ping, or /status`);
   });
 
