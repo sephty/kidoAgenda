@@ -23,7 +23,7 @@ const config = {
 
   market: {
     minPrice: parseFloat(process.env.MIN_STOCK_PRICE) || 0.01,
-    maxPrice: parseFloat(process.env.MAX_STOCK_PRICE) || 100,
+    maxPrice: parseFloat(process.env.MAX_STOCK_PRICE) || 999999,
     // Increased impact factor so trades are noticeable
     // buyImpactFactor of 0.01 = 100 shares * 0.01 = 1% price rise
     buyImpactFactor: 0.01,
