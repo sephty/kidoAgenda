@@ -37,7 +37,7 @@ module.exports = {
         embeds: [
           successEmbed(
             'Balance Reset',
-            `**${target.username}** balance set to **${amount.toFixed(2)}** hullbux.\nPortfolio cleared.`
+            `**${target.username}** balance set to **${amount.toFixed(2)}** kidobux.\nPortfolio cleared.`
           ),
         ],
       });

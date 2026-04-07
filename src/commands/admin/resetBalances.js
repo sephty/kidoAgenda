@@ -6,7 +6,7 @@ const User = require('../../models/User');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('reset-balances')
-    .setDescription('(Admin) Reset all users\' balance to 0 hullbux and clear portfolios.'),
+    .setDescription('(Admin) Reset all users\' balance to 0 kidobux and clear portfolios.'),
 
   async execute(interaction) {
     try {
@@ -23,7 +23,7 @@ module.exports = {
         }
       );
 
-      const message = `✅ **Reset Complete**\nUpdated ${result.modifiedCount} user(s) to 0 hullbux with cleared portfolios.`;
+      const message = `✅ **Reset Complete**\nUpdated ${result.modifiedCount} user(s) to 0 kidobux with cleared portfolios.`;
       await interaction.editReply({ content: message });
     } catch (err) {
       await replyWithError(interaction, err);

@@ -41,7 +41,7 @@ module.exports = {
         targetAvatar = interaction.user.displayAvatarURL({ size: 256 });
       }
 
-      const embed = infoEmbed(`${targetUsername}'s Balance`, `**${user.balance.toFixed(2)}** hullbux`)
+      const embed = infoEmbed(`${targetUsername}'s Balance`, `**${user.balance.toFixed(2)}** kidobux`)
         .setThumbnail(targetAvatar)
         .setFooter({ text: targetUsername });
 

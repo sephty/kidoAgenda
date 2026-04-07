@@ -49,7 +49,7 @@ discord-stock-bot/
     │   │   ├── removeBalance.js
     │   │   ├── resetUser.js
     │   │   ├── resetCharacter.js
-    │   │   └── resetBalances.js         # Reset all users to 0 hullbux
+    │   │   └── resetBalances.js         # Reset all users to 0 kidobux
     │   └── user/
     │       ├── balance.js
     │       ├── profile.js
@@ -113,7 +113,7 @@ npm start
 | `/remove-balance` | Deduct currency from a user |
 | `/reset-user` | Reset a user's balance and portfolio to defaults |
 | `/reset-character` | Reset a character's price and reputation to base values |
-| `/reset-balances` | Reset ALL users' balance to 0 hullbux |
+| `/reset-balances` | Reset ALL users' balance to 0 kidobux |
 
 ### User Commands
 
@@ -132,7 +132,7 @@ npm start
 
 ## Economy Design
 
-- **Starting balance:** 0 hullbux (earn through trading and events)
+- **Starting balance:** 0 kidobux (earn through trading and events)
 - **Prices are dynamic** — influenced by events, trading volume, and reputation drift
 - **Supply system** — total shares can be sold, circulating supply tracks holdings
 - **Every buy/sell moves price** — (0.01 impact factor = 1% per share, tunable)

@@ -14,7 +14,7 @@ module.exports = {
         .addFields(
           {
             name: '💰 Getting Started',
-            value: 'You start with **0 hullbux**. Earn money by trading stocks strategically and participating in events!',
+            value: 'You start with **0 kidobux**. Earn money by trading stocks strategically and participating in events!',
             inline: false,
           }
         ),
@@ -25,7 +25,7 @@ module.exports = {
         .addFields(
           {
             name: '/balance',
-            value: 'Check your current **hullbux** balance and purchasing power.',
+            value: 'Check your current **kidobux** balance and purchasing power.',
             inline: false,
           },
           {
@@ -45,7 +45,7 @@ module.exports = {
           },
           {
             name: '/sell <character> <amount>',
-            value: 'Sell your shares to get hullbux back. You\'ll earn profit/loss based on buy vs current price.',
+            value: 'Sell your shares to get kidobux back. You\'ll earn profit/loss based on buy vs current price.',
             inline: false,
           }
         ),
