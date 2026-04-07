@@ -1,31 +1,18 @@
 /**
  * Root entry point for hosting servers.
- * Includes a keep-alive web server for Render + Discord bot.
+ * Delegates to keep_alive for web server, then starts Discord bot.
  */
 
-const express = require('express');
-const http = require('http');
-const { startKeepAlive } = require('./keep_alive');
-
-const app = express();
+const { startServer, setBotReady } = require('./keep_alive');
 const PORT = process.env.PORT || 3000;
 
-// Basic health check endpoint
-app.get('/', (req, res) => {
-  res.status(200).send('Stock Bot is running!');
-});
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'alive', timestamp: new Date().toISOString() });
-});
-
-const server = http.createServer(app);
-server.listen(PORT, () => {
-  console.log(`[WebServer] Running on port ${PORT}`);
-});
-
-// Start keep-alive service
-startKeepAlive(PORT);
+// Start web server + keep-alive
+startServer(PORT);
 
 // Start Discord bot
-require('./src/index.js');
+const bot = require('./src/index.js');
+
+// Update ready status when bot connects
+if (bot && bot.on) {
+  bot.on('ready', () => setBotReady(true));
+}
