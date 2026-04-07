@@ -93,7 +93,7 @@ module.exports = {
         .addFields(
           {
             name: 'Events',
-            value: 'Admins can trigger special market events that affect stock prices across the board.',
+            value: 'Admins can trigger custom market events that adjust stock prices up or down (0-200% impact) with descriptions. Events are multiplied by volatility for dramatic effect!',
             inline: false,
           },
           {

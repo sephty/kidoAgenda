@@ -28,8 +28,13 @@ const client = new Client({
 // Attach a commands Map to the client so event handlers can access it
 client.commands = new Collection();
 
+// Prevent memory leaks from too many listeners
+// Default is 10, increase to 15 since we have many event listeners
+client.setMaxListeners(15);
+
 client.on('error', (error) => console.error('[DiscordClient] Error', error));
 client.on('shardError', (error) => console.error('[DiscordClient] Shard Error', error));
+client.on('warn', (warning) => console.warn('[DiscordClient] Warning', warning));
 
 // ─── Load Commands ─────────────────────────────────────────────────────────────
 function loadCommands() {
@@ -81,27 +86,38 @@ function loadEvents() {
   console.log(`[Events] Registered ${loaded} event(s).`);
 }
 
+// ─── Scheduler State ──────────────────────────────────────────────────────────
+const schedulers = {
+  passiveDrift: null,
+};
+
 // ─── Passive Drift Scheduler ───────────────────────────────────────────────────
 function startPassiveDrift() {
   const { applyPassiveDrift } = require('./services/marketService');
   const INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   // Run once shortly after startup, then every 24h
-  setTimeout(async () => {
+  const startupTimeout = setTimeout(async () => {
     try {
       await applyPassiveDrift();
     } catch (e) {
       console.error('[PassiveDrift] Error during drift tick:', e);
     }
 
-    setInterval(async () => {
+    schedulers.passiveDrift = setInterval(async () => {
       try {
         await applyPassiveDrift();
       } catch (e) {
         console.error('[PassiveDrift] Error during drift tick:', e);
       }
     }, INTERVAL_MS);
+    
+    if (schedulers.passiveDrift) {
+      schedulers.passiveDrift.unref(); // Allow process to exit if only this interval is running
+    }
   }, 60_000); // Wait 1 minute after startup before first tick
+  
+  startupTimeout.unref(); // Allow process to exit if only this timeout is running
 
   console.log('[PassiveDrift] Scheduler initialized (first tick in 60s, then every 24h).');
 }
@@ -115,8 +131,13 @@ async function connectDatabase() {
       useUnifiedTopology: true,
       retryWrites: true,
       serverSelectionTimeoutMS: 10_000,
+      // Connection pooling settings to prevent resource exhaustion
+      maxPoolSize: 10,        // Max connections in the pool
+      minPoolSize: 2,         // Min connections to keep alive
+      maxIdleTimeMS: 45000,   // Close connections idle > 45s
+      waitQueueTimeoutMS: 5000, // Timeout if queue waits > 5s
     });
-    console.log('[Database] Connected to MongoDB.');
+    console.log('[Database] Connected to MongoDB with connection pooling.');
   } catch (err) {
     console.error('[Database] Failed to connect:', err.message);
     process.exit(1);
@@ -127,8 +148,25 @@ async function connectDatabase() {
 function setupShutdownHandlers() {
   const shutdown = async (signal) => {
     console.log(`\n[Shutdown] Received ${signal}. Closing gracefully...`);
+    
+    // Stop all schedulers
+    if (schedulers.passiveDrift) {
+      clearInterval(schedulers.passiveDrift);
+      console.log('[Shutdown] Stopped passive drift scheduler.');
+    }
+    
+    // Stop cooldown cleanup
+    const { stopCleanupInterval } = require('./utils/cooldown');
+    stopCleanupInterval();
+    
+    // Stop Discord client
     client.destroy();
+    console.log('[Shutdown] Closed Discord client.');
+    
+    // Disconnect database
     await mongoose.disconnect();
+    console.log('[Shutdown] Disconnected from MongoDB.');
+    
     console.log('[Shutdown] Cleanup complete. Exiting.');
     process.exit(0);
   };
@@ -148,6 +186,10 @@ async function bootstrap() {
 
   setupShutdownHandlers();
   await connectDatabase();
+  
+  // Start cooldown cleanup interval to prevent memory leaks
+  const { startCleanupInterval } = require('./utils/cooldown');
+  startCleanupInterval();
 
   loadCommands();
   loadEvents();

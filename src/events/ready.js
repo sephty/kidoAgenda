@@ -27,13 +27,16 @@ module.exports = {
 
     // Schedule volatility randomization every 10 minutes
     // This simulates real market conditions where volatility fluctuates
-    setInterval(async () => {
+    const volatilityInterval = setInterval(async () => {
       try {
         await randomizeVolatility();
       } catch (err) {
         console.error('[Ready] Error randomizing volatility:', err.message);
       }
     }, 10 * 60 * 1000); // 10 minutes
+    
+    // Allow process to exit if only this interval is running
+    volatilityInterval.unref();
 
     console.log('[Ready] Volatility randomization scheduled (every 10 minutes)');
   },

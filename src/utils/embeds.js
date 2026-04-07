@@ -128,12 +128,12 @@ function profileEmbed(user, positions, totalPortfolioValue) {
 /**
  * Event result embed — shown after /event is applied.
  */
-function eventEmbed(character, eventType, changePercent, oldPrice, newPrice) {
+function eventEmbed(character, description, changePercent, oldPrice, newPrice) {
   const isPositive = newPrice >= oldPrice;
   const embed = new EmbedBuilder()
     .setColor(isPositive ? Colors.positive : Colors.negative)
     .setTitle(`Market Event: ${character.name}`)
-    .setDescription(`Event type: **${eventType}**`)
+    .setDescription(description)
     .addFields(
       { name: 'Previous Price', value: oldPrice.toFixed(2), inline: true },
       { name: 'New Price', value: newPrice.toFixed(2), inline: true },

@@ -27,42 +27,25 @@ function round2(n) {
 }
 
 /**
- * EVENT DEFINITIONS
+ * Apply a custom market event to a character.
+ * Flexible system where admins specify direction and impact amount.
  *
- * Each event type defines a base percentage impact on price and a reputation delta.
- * Positive impact = price goes up; negative = price goes down.
- * The actual swing is multiplied by the character's volatility.
+ * @param {string} characterName - Target character
+ * @param {string} description - Event description (e.g., "Major victory in competition")
+ * @param {string} direction - 'up' or 'down'
+ * @param {number} amount - Impact percentage (0-200)
+ * @returns {{ character, oldPrice, newPrice, changePercent, description }}
  */
-const EVENT_TYPES = {
-  win: { label: 'Victory', baseImpact: 15, repDelta: 5 },
-  loss: { label: 'Defeat', baseImpact: -12, repDelta: -3 },
-  humiliation: { label: 'Public Humiliation', baseImpact: -20, repDelta: -8 },
-  achievement: { label: 'Major Achievement', baseImpact: 25, repDelta: 10 },
-  discovery: { label: 'Major Discovery', baseImpact: 18, repDelta: 6 },
-  scandal: { label: 'Scandal', baseImpact: -18, repDelta: -7 },
-  alliance: { label: 'New Alliance', baseImpact: 10, repDelta: 3 },
-  betrayal: { label: 'Betrayal', baseImpact: -15, repDelta: -6 },
-  comeback: { label: 'Dramatic Comeback', baseImpact: 30, repDelta: 8 },
-  death_rumor: { label: 'Death Rumor', baseImpact: -25, repDelta: -5 },
-  custom: { label: 'Custom Event', baseImpact: 0, repDelta: 0 }, // admin sets manually
-};
-
-/**
- * Apply an event to a character, adjusting its price and reputation.
- *
- * @param {string} characterName
- * @param {string} eventType  - Key from EVENT_TYPES
- * @param {number|null} customImpact - Override for 'custom' event type (%)
- * @returns {{ character, oldPrice, newPrice, changePercent }}
- */
-async function applyEvent(characterName, eventType, customImpact = null) {
-  const event = EVENT_TYPES[eventType];
-  if (!event) {
+async function applyEvent(characterName, description, direction, amount) {
+  // Validate inputs
+  if (!['up', 'down'].includes(direction)) {
     const { AppError } = require('../utils/errors');
-    throw new AppError(
-      `Unknown event type "${eventType}". Valid types: ${Object.keys(EVENT_TYPES).join(', ')}`,
-      'INVALID_EVENT'
-    );
+    throw new AppError('Direction must be "up" or "down".', 'INVALID_DIRECTION');
+  }
+
+  if (amount < 0 || amount > 200) {
+    const { AppError } = require('../utils/errors');
+    throw new AppError('Impact amount must be between 0 and 200%.', 'INVALID_AMOUNT');
   }
 
   const character = await Character.findOne({ name: characterName });
@@ -73,8 +56,8 @@ async function applyEvent(characterName, eventType, customImpact = null) {
 
   const oldPrice = character.price;
 
-  // Determine the percentage swing
-  let impactPercent = eventType === 'custom' ? (customImpact ?? 0) : event.baseImpact;
+  // Determine the percentage swing (negative if down, positive if up)
+  let impactPercent = direction === 'up' ? amount : -amount;
 
   // Scale by volatility — higher volatility amplifies both gains and losses
   impactPercent = impactPercent * character.volatility;
@@ -86,20 +69,13 @@ async function applyEvent(characterName, eventType, customImpact = null) {
   const newRawPrice = oldPrice * (1 + impactPercent / 100);
   const newPrice = clampPrice(round2(newRawPrice));
 
-  // Reputation adjustment (clamped to -100/+100)
-  const newReputation = Math.max(
-    -100,
-    Math.min(100, character.reputation + event.repDelta)
-  );
-
   const actualChangePercent = round2(((newPrice - oldPrice) / oldPrice) * 100);
 
   character.price = newPrice;
   character.lastChange = actualChangePercent;
-  character.reputation = newReputation;
   await character.save();
 
-  return { character, oldPrice, newPrice, changePercent: actualChangePercent, eventLabel: event.label };
+  return { character, oldPrice, newPrice, changePercent: actualChangePercent };
 }
 
 /**
@@ -247,7 +223,6 @@ async function getCharacter(name) {
 }
 
 module.exports = {
-  EVENT_TYPES,
   clampPrice,
   round2,
   applyEvent,
